@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgroVal — Tarımsal Makine Değerleme</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ───────────────────────────────────────────────────── */
+    :root {
+      /* OKLCH palette — borsa terminali tonu */
+      --bg-base:       oklch(0.11 0.012 148);
+      --bg-surface:    oklch(0.16 0.010 148);
+      --bg-raised:     oklch(0.20 0.010 148);
+      --border-subtle: oklch(0.28 0.018 148);
+      --border-accent: oklch(0.40 0.08  148);
+
+      --text-primary:   oklch(0.93 0.012 148);
+      --text-secondary: oklch(0.62 0.018 148);
+      --text-muted:     oklch(0.44 0.010 148);
+
+      --green-vivid:  oklch(0.73 0.19  148);
+      --green-dim:    oklch(0.50 0.12  148);
+      --amber:        oklch(0.78 0.15   72);
+      --amber-dim:    oklch(0.60 0.10   72);
+      --red-signal:   oklch(0.65 0.20   24);
+
+      /* Spacing — 8px base */
+      --sp-1:  8px;
+      --sp-2: 16px;
+      --sp-3: 24px;
+      --sp-4: 32px;
+      --sp-5: 40px;
+      --sp-6: 48px;
+      --sp-8: 64px;
+
+      /* Radius */
+      --r-sm: 4px;
+      --r-md: 8px;
+      --r-lg: 12px;
+
+      /* Shadow */
+      --shadow-sm: 0 1px 3px oklch(0.05 0.01 148 / 0.6);
+      --shadow-md: 0 4px 16px oklch(0.05 0.01 148 / 0.8);
+
+      /* Easing */
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-enter:    cubic-bezier(0, 0, 0.2, 1);
+      --ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+
+      /* Type scale — Perfect Fourth (1.333) */
+      --ts-xs:   0.563rem;  /* 9px  */
+      --ts-sm:   0.75rem;   /* 12px */
+      --ts-base: 1rem;      /* 16px */
+      --ts-md:   1.125rem;  /* 18px */
+      --ts-lg:   1.333rem;  /* ~21px */
+      --ts-xl:   1.777rem;  /* ~28px */
+      --ts-2xl:  2.369rem;  /* ~38px */
+    }
+
+    /* ─── Reset & Base ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: var(--ts-base);
+      line-height: 1.6;
+      letter-spacing: 0;
+      color: var(--text-primary);
+      background-color: var(--bg-base);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Layout ──────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100dvh;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+      padding: var(--sp-4) var(--sp-3);
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (min-width: 680px) {
+      .main {
+        grid-template-columns: 1fr 1fr;
+        padding: var(--sp-5) var(--sp-4);
+      }
+    }
+
+    @media (min-width: 960px) {
+      .main { padding: var(--sp-6) var(--sp-4); }
+    }
+
+    /* ─── Header ──────────────────────────────────────────────────────────── */
+    .header {
+      border-bottom: 1px solid var(--border-subtle);
+      padding: var(--sp-2) var(--sp-3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-2);
+    }
+
+    .header__brand {
+      display: flex;
+      align-items: baseline;
+      gap: var(--sp-1);
+    }
+
+    .header__wordmark {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-md);
+      font-weight: 700;
+      color: var(--green-vivid);
+      letter-spacing: -0.02em;
+    }
+
+    .header__sub {
+      font-size: var(--ts-sm);
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .header__ticker {
+      display: flex;
+      gap: var(--sp-3);
+      align-items: center;
+    }
+
+    .ticker-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .ticker-item__label {
+      font-size: var(--ts-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .ticker-item__value {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-sm);
+      color: var(--amber);
+    }
+
+    .ticker-item__value.up   { color: var(--green-vivid); }
+    .ticker-item__value.down { color: var(--red-signal); }
+
+    /* ─── Panel / Card ────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-lg);
+      padding: var(--sp-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-3);
+      box-shadow: var(--shadow-sm);
+      container-type: inline-size;
+    }
+
+    .panel--accent {
+      border-color: var(--border-accent);
+      background: oklch(0.14 0.018 148);
+    }
+
+    .panel__header {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-1);
+      padding-bottom: var(--sp-2);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green-dim);
+      flex-shrink: 0;
+    }
+
+    .panel__dot--amber { background: var(--amber-dim); }
+
+    .panel__title {
+      font-size: var(--ts-sm);
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ─── Form ────────────────────────────────────────────────────────────── */
+    .form { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field__label {
+      font-size: var(--ts-sm);
+      color: var(--text-secondary);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .field__input {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-base);
+      color: var(--text-primary);
+      background: var(--bg-raised);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-md);
+      padding: 10px var(--sp-2);
+      width: 100%;
+      outline: none;
+      transition:
+        border-color 150ms var(--ease-standard),
+        box-shadow   150ms var(--ease-standard),
+        background   150ms var(--ease-standard);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .field__input:hover {
+      border-color: var(--border-accent);
+    }
+
+    .field__input:focus {
+      border-color: var(--green-dim);
+      box-shadow: 0 0 0 3px oklch(0.50 0.12 148 / 0.20);
+      background: oklch(0.22 0.012 148);
+    }
+
+    .field__input::placeholder { color: var(--text-muted); }
+
+    .field__hint {
+      font-size: var(--ts-xs);
+      color: var(--text-muted);
+    }
+
+    /* Condition slider */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+
+    .field__slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border-subtle);
+      outline: none;
+      cursor: pointer;
+      transition: background 200ms var(--ease-standard);
+    }
+
+    .field__slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--green-vivid);
+      cursor: pointer;
+      border: 2px solid var(--bg-base);
+      transition:
+        transform 100ms var(--ease-standard),
+        box-shadow 100ms var(--ease-standard);
+    }
+
+    .field__slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 4px oklch(0.73 0.19 148 / 0.20);
+    }
+
+    .field__slider:focus {
+      outline: none;
+    }
+
+    .field__slider:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 4px oklch(0.73 0.19 148 / 0.30);
+    }
+
+    .slider-value {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-sm);
+      color: var(--green-vivid);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: var(--ts-base);
+      font-weight: 600;
+      line-height: 1;
+      padding: 12px var(--sp-3);
+      border-radius: var(--r-md);
+      border: 1px solid transparent;
+      cursor: pointer;
+      outline: none;
+      text-decoration: none;
+      user-select: none;
+      transition:
+        background   200ms var(--ease-standard),
+        border-color 200ms var(--ease-standard),
+        color        200ms var(--ease-standard),
+        box-shadow   200ms var(--ease-standard),
+        transform    100ms var(--ease-standard);
+    }
+
+    .btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Primary */
+    .btn--primary {
+      background: var(--green-vivid);
+      color: oklch(0.10 0.01 148);
+      border-color: var(--green-vivid);
+      width: 100%;
+    }
+
+    .btn--primary:hover:not(:disabled) {
+      background: oklch(0.80 0.20 148);
+      border-color: oklch(0.80 0.20 148);
+      box-shadow: 0 0 0 4px oklch(0.73 0.19 148 / 0.18),
+                  var(--shadow-sm);
+    }
+
+    .btn--primary:active:not(:disabled) {
+      background: oklch(0.65 0.17 148);
+      border-color: oklch(0.65 0.17 148);
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    .btn--primary:focus-visible {
+      box-shadow: 0 0 0 3px oklch(0.73 0.19 148 / 0.35);
+    }
+
+    /* Ghost */
+    .btn--ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    .btn--ghost:hover:not(:disabled) {
+      background: var(--bg-raised);
+      color: var(--text-primary);
+      border-color: var(--border-accent);
+    }
+
+    .btn--ghost:active:not(:disabled) {
+      background: var(--border-subtle);
+      transform: translateY(1px);
+    }
+
+    .btn--ghost:focus-visible {
+      box-shadow: 0 0 0 3px oklch(0.50 0.12 148 / 0.25);
+    }
+
+    /* ─── Result Panel ────────────────────────────────────────────────────── */
+    .result-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: var(--sp-2);
+      padding: var(--sp-5) var(--sp-3);
+      flex: 1;
+    }
+
+    .result-empty__icon {
+      font-size: 2rem;
+      opacity: 0.4;
+    }
+
+    .result-empty__title {
+      font-size: var(--ts-base);
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .result-empty__hint {
+      font-size: var(--ts-sm);
+      color: var(--text-muted);
+      max-width: 240px;
+    }
+
+    .result-content {
+      display: none;
+      flex-direction: column;
+      gap: var(--sp-3);
+    }
+
+    .result-content.visible {
+      display: flex;
+      animation: fadeSlideIn 250ms var(--ease-enter) both;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-value-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .result-value-block__label {
+      font-size: var(--ts-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .result-value-block__amount {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-2xl);
+      font-weight: 700;
+      color: var(--green-vivid);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .result-value-block__badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--ts-xs);
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--r-sm);
+      margin-top: 4px;
+      width: fit-content;
+      letter-spacing: 0.04em;
+    }
+
+    .badge--positive {
+      background: oklch(0.73 0.19 148 / 0.12);
+      color: var(--green-vivid);
+      border: 1px solid oklch(0.73 0.19 148 / 0.25);
+    }
+
+    .badge--warning {
+      background: oklch(0.78 0.15 72 / 0.12);
+      color: var(--amber);
+      border: 1px solid oklch(0.78 0.15 72 / 0.25);
+    }
+
+    /* Breakdown table */
+    .breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      border-radius: var(--r-md);
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .breakdown__row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px var(--sp-2);
+      background: var(--bg-raised);
+      gap: var(--sp-2);
+      transition: background 150ms var(--ease-standard);
+    }
+
+    .breakdown__row:not(:last-child) {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .breakdown__row:hover { background: oklch(0.23 0.012 148); }
+
+    .breakdown__key {
+      font-size: var(--ts-sm);
+      color: var(--text-secondary);
+    }
+
+    .breakdown__val {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-sm);
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    .breakdown__val.negative { color: var(--red-signal); }
+    .breakdown__val.highlight { color: var(--amber); }
+
+    /* Skeleton loading */
+    .skeleton {
+      display: none;
+      flex-direction: column;
+      gap: var(--sp-2);
+    }
+
+    .skeleton.active { display: flex; }
+
+    .skeleton__block {
+      background: var(--bg-raised);
+      border-radius: var(--r-sm);
+      animation: shimmer 1.4s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { opacity: 0.5; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+
+    /* ─── Market Strip ────────────────────────────────────────────────────── */
+    .market-strip {
+      display: flex;
+      gap: var(--sp-3);
+      overflow-x: auto;
+      padding: var(--sp-2) var(--sp-3);
+      border-top: 1px solid var(--border-subtle);
+      scrollbar-width: none;
+    }
+
+    .market-strip::-webkit-scrollbar { display: none; }
+
+    .market-strip__item {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .market-strip__name {
+      font-size: var(--ts-xs);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .market-strip__price {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-sm);
+      color: var(--text-primary);
+    }
+
+    .market-strip__change {
+      font-family: 'Space Mono', monospace;
+      font-size: var(--ts-xs);
+    }
+
+    .market-strip__change.up   { color: var(--green-vivid); }
+    .market-strip__change.down { color: var(--red-signal); }
+
+    /* ─── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--sp-1);
+      padding: var(--sp-2) var(--sp-3);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    footer p {
+      font-size: var(--ts-xs);
+      color: var(--text-muted);
+    }
+
+    /* ─── Utility ─────────────────────────────────────────────────────────── */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__brand">
+      <span class="header__wordmark">AGROVAL</span>
+      <span class="header__sub">Makine Değerleme Terminali</span>
+    </div>
+    <nav class="header__ticker" aria-label="Piyasa göstergesi">
+      <div class="ticker-item">
+        <span class="ticker-item__label">Buğday (TRY/ton)</span>
+        <span class="ticker-item__value up">8,420 ▲</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-item__label">Dizel (TRY/lt)</span>
+        <span class="ticker-item__value down">42.6 ▼</span>
+      </div>
+      <div class="ticker-item">
+        <span class="ticker-item__label">EUR/TRY</span>
+        <span class="ticker-item__value">37.84</span>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Input Panel -->
+    <section class="panel" aria-labelledby="form-title">
+      <div class="panel__header">
+        <span class="panel__dot" aria-hidden="true"></span>
+        <h2 class="panel__title" id="form-title">Makine Parametreleri</h2>
+      </div>
+
+      <form class="form" id="valuation-form" novalidate>
+
+        <div class="field">
+          <label class="field__label" for="price">Orijinal Alış Fiyatı (TRY)</label>
+          <input
+            class="field__input"
+            type="number"
+            id="price"
+            name="price"
+            placeholder="ör. 2.500.000"
+            min="1"
+            required
+            inputmode="numeric"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="age">Yaş (Yıl)</label>
+          <input
+            class="field__input"
+            type="number"
+            id="age"
+            name="age"
+            placeholder="ör. 5"
+            min="0"
+            max="40"
+            required
+            inputmode="numeric"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="hours">Kullanım Saati</label>
+          <input
+            class="field__input"
+            type="number"
+            id="hours"
+            name="hours"
+            placeholder="ör. 3.200"
+            min="0"
+            max="20000"
+            required
+            inputmode="numeric"
+          />
+          <span class="field__hint">Maks. ekonomik ömür: 20.000 saat</span>
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="condition">Durum Skoru</label>
+          <div class="slider-row">
+            <input
+              class="field__slider"
+              type="range"
+              id="condition"
+              name="condition"
+              min="0.5"
+              max="1.0"
+              step="0.05"
+              value="0.8"
+              aria-valuemin="0.5"
+              aria-valuemax="1.0"
+              aria-valuenow="0.8"
+            />
+            <span class="slider-value" id="condition-display" aria-live="polite">0.80</span>
+          </div>
+          <span class="field__hint">0.50 = Kötü &nbsp;·&nbsp; 0.75 = Orta &nbsp;·&nbsp; 1.00 = Mükemmel</span>
+        </div>
+
+        <div style="display:flex; gap: var(--sp-2); margin-top: var(--sp-1);">
+          <button type="submit" class="btn btn--primary">
+            Değeri Hesapla
+          </button>
+          <button type="button" class="btn btn--ghost" id="reset-btn" aria-label="Formu sıfırla">
+            Sıfırla
+          </button>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- Result Panel -->
+    <section class="panel panel--accent" aria-labelledby="result-title" aria-live="polite">
+      <div class="panel__header">
+        <span class="panel__dot panel__dot--amber" aria-hidden="true"></span>
+        <h2 class="panel__title" id="result-title">Değerleme Raporu</h2>
+      </div>
+
+      <!-- Skeleton (shown during calc) -->
+      <div class="skeleton" id="skeleton" aria-hidden="true">
+        <div class="skeleton__block" style="height:48px; width:60%;"></div>
+        <div class="skeleton__block" style="height:20px; width:40%;"></div>
+        <div class="skeleton__block" style="height:120px;"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="result-empty" id="result-empty">
+        <div class="result-empty__icon" aria-hidden="true">◈</div>
+        <p class="result-empty__title">Henüz analiz yok</p>
+        <p class="result-empty__hint">Sol panelden makine parametrelerini girerek değerlemeyi başlat.</p>
+      </div>
+
+      <!-- Result content -->
+      <div class="result-content" id="result-content">
+
+        <div class="result-value-block">
+          <span class="result-value-block__label">Tahmini Piyasa Değeri</span>
+          <span class="result-value-block__amount" id="result-amount">—</span>
+          <span class="result-value-block__badge badge--positive" id="result-badge"></span>
+        </div>
+
+        <div class="breakdown" role="table" aria-label="Değerleme kırılımı">
+          <div class="breakdown__row" role="row">
+            <span class="breakdown__key" role="cell">Orijinal Fiyat</span>
+            <span class="breakdown__val" id="bd-original" role="cell">—</span>
+          </div>
+          <div class="breakdown__row" role="row">
+            <span class="breakdown__key" role="cell">Zaman Faktörü</span>
+            <span class="breakdown__val highlight" id="bd-time" role="cell">—</span>
+          </div>
+          <div class="breakdown__row" role="row">
+            <span class="breakdown__key" role="cell">Kullanım Faktörü</span>
+            <span class="breakdown__val highlight" id="bd-usage" role="cell">—</span>
+          </div>
+          <div class="breakdown__row" role="row">
+            <span class="breakdown__key" role="cell">Durum Faktörü</span>
+            <span class="breakdown__val highlight" id="bd-cond" role="cell">—</span>
+          </div>
+          <div class="breakdown__row" role="row">
+            <span class="breakdown__key" role="cell">Hurda Taban Değeri</span>
+            <span class="breakdown__val negative" id="bd-scrap" role="cell">—</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Market Data Strip ───────────────────────────────────────── -->
+  <div class="market-strip" aria-label="Tarım piyasası anlık verileri">
+    <div class="market-strip__item">
+      <span class="market-strip__name">JD 6130M</span>
+      <span class="market-strip__price">₺1.240.000</span>
+      <span class="market-strip__change up">+2.1%</span>
+    </div>
+    <div class="market-strip__item">
+      <span class="market-strip__name">NH T6.180</span>
+      <span class="market-strip__price">₺1.080.000</span>
+      <span class="market-strip__change down">−0.8%</span>
+    </div>
+    <div class="market-strip__item">
+      <span class="market-strip__name">Fendt 724</span>
+      <span class="market-strip__price">₺2.640.000</span>
+      <span class="market-strip__change up">+1.4%</span>
+    </div>
+    <div class="market-strip__item">
+      <span class="market-strip__name">Claas Axion 810</span>
+      <span class="market-strip__price">₺2.950.000</span>
+      <span class="market-strip__change up">+0.6%</span>
+    </div>
+    <div class="market-strip__item">
+      <span class="market-strip__name">Massey 7718</span>
+      <span class="market-strip__price">₺1.570.000</span>
+      <span class="market-strip__change down">−1.2%</span>
+    </div>
+    <div class="market-strip__item">
+      <span class="market-strip__name">Kubota M7153</span>
+      <span class="market-strip__price">₺1.890.000</span>
+      <span class="market-strip__change up">+0.3%</span>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2026 AgroVal — Veriler yalnızca bilgi amaçlıdır, yatırım tavsiyesi değildir.</p>
+  </footer>
+
+</div>
+
+<script>
+  // ── Slider live feedback ───────────────────────────────────────
+  const slider = document.getElementById('condition');
+  const display = document.getElementById('condition-display');
+
+  slider.addEventListener('input', () => {
+    const v = parseFloat(slider.value).toFixed(2);
+    display.textContent = v;
+    slider.setAttribute('aria-valuenow', v);
+  });
+
+  // ── Valuation logic (mirrors valuation_logic.py) ───────────────
+  function calculateFairValue(originalPrice, age, usageHours, conditionScore) {
+    const BASE_DEPRECIATION = 0.15;
+    const timeFactor  = Math.pow(1 - BASE_DEPRECIATION, age);
+    const usageFactor = 1 - (usageHours / 20000);
+    const estimated   = originalPrice * timeFactor * usageFactor * conditionScore;
+    const scrapFloor  = originalPrice * 0.1;
+    return {
+      value:       Math.max(estimated, scrapFloor),
+      timeFactor,
+      usageFactor,
+      conditionScore,
+      scrapFloor,
+      originalPrice,
+    };
+  }
+
+  // ── Format ────────────────────────────────────────────────────
+  const fmt = (n) =>
+    '₺' + Math.round(n).toLocaleString('tr-TR');
+
+  const pct = (n) =>
+    (n * 100).toFixed(1) + '%';
+
+  // ── UI state helpers ──────────────────────────────────────────
+  const resultEmpty   = document.getElementById('result-empty');
+  const resultContent = document.getElementById('result-content');
+  const skeleton      = document.getElementById('skeleton');
+
+  function showSkeleton() {
+    resultEmpty.style.display   = 'none';
+    resultContent.classList.remove('visible');
+    skeleton.classList.add('active');
+    skeleton.removeAttribute('aria-hidden');
+  }
+
+  function showResult(data) {
+    skeleton.classList.remove('active');
+    skeleton.setAttribute('aria-hidden', 'true');
+    resultEmpty.style.display = 'none';
+
+    document.getElementById('result-amount').textContent = fmt(data.value);
+
+    const ratio = data.value / data.originalPrice;
+    const badge = document.getElementById('result-badge');
+    if (ratio >= 0.5) {
+      badge.textContent = `Orijinal değerin %${Math.round(ratio * 100)}'i`;
+      badge.className = 'result-value-block__badge badge--positive';
+    } else {
+      badge.textContent = `Orijinal değerin %${Math.round(ratio * 100)}'i`;
+      badge.className = 'result-value-block__badge badge--warning';
+    }
+
+    document.getElementById('bd-original').textContent = fmt(data.originalPrice);
+    document.getElementById('bd-time').textContent     = pct(data.timeFactor);
+    document.getElementById('bd-usage').textContent    = pct(Math.max(data.usageFactor, 0));
+    document.getElementById('bd-cond').textContent     = pct(data.conditionScore);
+    document.getElementById('bd-scrap').textContent    = fmt(data.scrapFloor);
+
+    resultContent.classList.add('visible');
+  }
+
+  function showEmpty() {
+    skeleton.classList.remove('active');
+    skeleton.setAttribute('aria-hidden', 'true');
+    resultContent.classList.remove('visible');
+    resultEmpty.style.display = '';
+  }
+
+  // ── Form submit ───────────────────────────────────────────────
+  document.getElementById('valuation-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const price   = parseFloat(document.getElementById('price').value);
+    const age     = parseFloat(document.getElementById('age').value);
+    const hours   = parseFloat(document.getElementById('hours').value);
+    const cond    = parseFloat(slider.value);
+
+    if (!price || isNaN(age) || isNaN(hours)) return;
+
+    showSkeleton();
+
+    // Simulated async (mirrors real API latency)
+    setTimeout(() => {
+      const data = calculateFairValue(price, age, hours, cond);
+      showResult(data);
+    }, 600);
+  });
+
+  // ── Reset ─────────────────────────────────────────────────────
+  document.getElementById('reset-btn').addEventListener('click', () => {
+    document.getElementById('valuation-form').reset();
+    slider.value = 0.8;
+    display.textContent = '0.80';
+    slider.setAttribute('aria-valuenow', '0.80');
+    showEmpty();
+  });
+</script>
+</body>
+</html>
